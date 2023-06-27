@@ -26,19 +26,20 @@
 
 
     let id = 0;
-    var path = []
+    // var 
     var currentArray = []
     export default {
         mounted:function(){
             // 调用接口获取服务器的盘符
-            axiox.get("http://localhost:8888/getDir?dir=getInit").then(function(response){
-                // console.log("mxw")
-                console.log("data"+response.data)
-                console.log("currentArray"+currentArray)
-                currentArray = response.data
+            // axiox.get("http://localhost:8888/getDir?dir=getInit").then(function(response){
+            //     // console.log("mxw")
+            //     console.log("data="+response.data)
+            //     console.log("currentArray"+currentArray)
+            //     // for(int i=0;i<response)
+            //     currentArray = response.data
                 
-                //将获取的数据放到currentArray里
-            })
+            //     //将获取的数据放到currentArray里
+            // })
 
             // console.log("我获取了所有的盘符")
             // this.currentArray = ["c","d"]
@@ -52,45 +53,89 @@
                     {id:3,username:'zhy2',sex:"1"},
                     {id:4,username:'zhy3',sex:"1"},
                 ],
-                choose: '', // 存放的是 value 数组
-                // lazyload方法有两个参数，第一个参数node为当前点击的节点，第二个resolve为数据加载完成的回调(必须调用)。
-                // 为了更准确的显示节点的状态，还可以对节点数据添加是否为叶子节点的标志位 (默认字段为leaf，可通过props.leaf修改)，
-                // 否则会简单的以有无子节点来判断是否为叶子节点。
+                choose: "", 
                 props: {
                     lazy: true,
                     lazyLoad(node, resolve) {
-                        console.log("path:"+path);
-                        console.log(this)
                         console.log(node)
-                        // console.log(node.data)
-                        // console.log(resolve)
-                        
                         // const { level } = node;
                         const level = node.level
-                        // console.log(level)
-                        // console.log(Array.from({ length: level + 1 }))
-                        
                         setTimeout(() => {
-                            // 将当前的 node 的 lable 返回给后端 
-                            // let path = 'zzz' 
-                            // console.log(path)
+                            async function getDir(){
+                                try{
+                                    // 判定如果是空的，那么需要获取盘符
+                                    // 将盘符末尾的冒号删去
+                                    console.log("我进入了这个函数")
+                                    console.log(currentArray.length === 0)
+                                    if(level === 0){
+                                        console.log("我进入了这个函数2")
+                                        const response = await axiox.get("http://localhost:8888/getDir?dir=getInit")
+                                        currentArray = response.data
+                                        for(var i=0;i<currentArray.length;i++){
+                                            currentArray[i] = currentArray[i].slice(0,currentArray[i].indexOf(":")+1)
+                                            console.log(currentArray[i])
+                                        }
+                                        const nodes = currentArray.map(item =>({
+                                            value:++id,
+                                            label:item,
+                                            leaf:level
+                                        }))
+                                        console.log(nodes)
+                                        resolve(nodes);
+                                    }
+                                    // 如果不是空的。就查看点击的位置，再服务器获取数据，添加到resolve中
+                                    else{
+                                        var path = [] 
+                                        // 获取node的level
+                                        // console.log(node.label)
+                                        // 它的祖宗们拼接，向服务器询问数据
+                                        // const response = await axiox.get("http://localhost:8888/getDir?dir=getInit")
+                                        // 将路径存入数组
+                                        
+                                        // 遍历寻找父亲的label添加到数组
+                                        for(var i=level;i>0;i--){
+                                            path.push(node.label)
+                                            node = node.parent
+                                        }
+                                        // 反向组成字符串保存为路径
+                                        var pathString = ""
+                                        for(var i=level-1;i>=0;i--){
+                                            pathString += path[i]
+                                            pathString += "/"
+                                        }
+                                        // pathString += path[0]
+                                        // 发送请求
+                                        console.log("我进入了else函数2")
+                                        console.log(node)
+                                        console.log(pathString)
+                                        const response = await axiox.get("http://localhost:8888/getDir?dir="+pathString)
+                                        currentArray = response.data
+                                        console.log("currentArray")
+                                        console.log(currentArray)
+                                        if(currentArray.length===0){
+                                            const nodes = currentArray.map(item =>({
+                                                value:++id,
+                                                label:item,
+                                                leaf:level
+                                            }))
+                                            resolve(nodes);
+                                        }
+                                        else{
+                                            const nodes = currentArray.map(item =>({
+                                                value:++id,
+                                                label:item,
+                                                leaf:level
+                                            }))
+                                            resolve(nodes);
+                                        }
+                                    }
+                                }
+                                catch(error){
+                                    console.error(error) 
 
-                            //需要改成同步
-                            // axiox.get("http://localhost:8888/hello").then(function(response){
-                            //     console.log(response)
-                            //     //将获取的数据放到 nodes 里
-                            // })
-                            const nodes = currentArray
-                            // const nodes = Array.from({ length: level + 1 }) //Array.from()方法就是将一个类数组对象或者可遍历对象转换成一个真正的数组，
-                            //     .map(item => ({
-                            //         value: ++id,
-                            //         label: `选项${id}`,
-                            //         leaf: level >= 2
-                            //     }));
-                            console.log("nodes")
-                            console.log(nodes)
-                            // 通过调用resolve将子节点数据返回，通知组件数据加载完成
-                            resolve(nodes);
+                                }
+                            }
+                            getDir()
                         }, 1000);
                     
                     }
