@@ -3,12 +3,27 @@
         <!-- <h1>{{ filename }}</h1>
         <p>{{filetext}}</p> -->
         <div class="key-input">
-            <el-input placeholder="请输入你要搜索的关键词" v-model="input"></el-input>
+            <el-input placeholder="请输入你要搜索的关键词" v-model="input1"></el-input>
         </div>
         
-        <div>
+        <!-- <div>
             <el-cascader :props="props" placeholder="选择你的文件夹地址" v-model="choose"></el-cascader>
+        </div> -->
+
+        <div>
+            <el-input placeholder="选中文件夹的url地址" v-model="input" :disabled="true"></el-input>
         </div>
+
+        <div>
+            <el-table :data="tableData" stripe style="width: 100%" @row-click="tableItemClick">
+                <el-table-column prop="path" label="文件夹" width="180" ></el-table-column>
+                <el-table-column prop="chooseFolder" label="选择" width="180">
+                    <!-- <el-radio v-model="radio" :label="id">选择</el-radio> -->
+                    <button @click="tableButtonClick">选择</button>
+                </el-table-column>
+                <!-- <el-table-column prop="address" label="地址"></el-table-column> -->
+        </el-table>
+        </div> 
         
         <div>
             <button @click="getUrlFile()">提交</button>
@@ -17,6 +32,7 @@
         <div>
             <li v-for="(user,i) in userlist" :key="user.id"> 索引是{{i}},{{user.username }}</li>    
         </div>
+
         
     </div>
 </template>
@@ -25,28 +41,42 @@
     import axiox from "axios"
 
 
-    let id = 0;
+    var id = 0;
     // var 
     var currentArray = []
     export default {
-        mounted:function(){
+        created:function(){
             // 调用接口获取服务器的盘符
-            // axiox.get("http://localhost:8888/getDir?dir=getInit").then(function(response){
-            //     // console.log("mxw")
-            //     console.log("data="+response.data)
-            //     console.log("currentArray"+currentArray)
-            //     // for(int i=0;i<response)
-            //     currentArray = response.data
-                
-            //     //将获取的数据放到currentArray里
-            // })
-
-            // console.log("我获取了所有的盘符")
-            // this.currentArray = ["c","d"]
+            axiox.get("http://localhost:8888/getDir?dir=getInit").then((response)=>{
+                // console.log("mxw")
+                currentArray = response.data
+                //去除 末尾 的 \\
+                for(var i=0;i<currentArray.length;i++){
+                    currentArray[i] = currentArray[i].slice(0,currentArray[i].indexOf(":")+1)
+                }
+                console.log("currentArray")
+                console.log(currentArray)
+                var tableData = []
+                for(let i=0;i<currentArray.length;i++){
+                    let a = {}
+                    a.path = currentArray[i]
+                    tableData.push(a)
+                }
+                console.log(tableData)
+                console.log(this.tableData)
+                this.tableData = tableData
+                //将获取的数据放到currentArray里
+            })
         },
         data:function(){
             return{
+                flag:0,
+                radio: '0',
+                id:++id,
+                showlist:[],
+                tableData: [],
                 input: '',
+                input1:"",
                 userlist: [
                     {id:1,username:'zhy',sex:"1"},
                     {id:2,username:'zhy1',sex:"1"},
@@ -144,12 +174,64 @@
         },
         methods:{
             getUrlFile:function(){
-                //给出url地址，像服务端获取 JSON 数据来渲染页面
+                // 获取 input 中的 url 内地址
+                // 提交url地址，像服务端获取 JSON 数据来渲染页面
                 console.log("我触发了点击事件");
-                //并展示
+                // 更新渲染表格
+                // 并展示
             },
-            getThis:function(){
-                return this;
+            testClick:function(row,event,column){
+                console.log(row)
+                console.log(event)
+                console.log(column)
+                // alert("111")
+            },
+            testButton:function(e){
+                // alert()
+                console.log(111111111)
+                console.log(e)
+                console.log(111111111)
+            },
+            tableButtonClick:function(){
+                // table中的button的点击事件
+                // 将路径更新input
+                // 1、获取点击的按钮的在表格的位置，上传即可
+                // 获取当前点击的位置
+                // console.log(e)
+                this.flag = 1
+            },
+            tableItemClick:function(row,event,column){
+                //将被点击的 item 的 内容同步到input里面
+                // console.log(this.input)
+                
+                // 判断 如果最后不是/ 结尾，那么就将其截断到/ 还需要考虑空的情况
+                if(this.input != "" && this.input.charAt(this.input.length - 1 )!='/'){
+                    console.log("进入到这个函数中")
+                    //截取
+                    // index = 0
+
+                    // let a = "123213123121231231"
+                    // let index2=a.lastIndexOf('k')
+                    // console.log("a")
+                    // console.log(index2)
+                    // console.log(a.slice(0,index2))
+                    let index = this.input.lastIndexOf('/') 
+                    console.log(index)
+                    if(index == -1){
+                        this.input = ""
+                    }
+                    this.input = this.input.slice(0,index+1)
+                }
+                if(this.flag==1){
+                    this.input+=row.path
+                }
+                else{
+                    this.input+=row.path + "/"
+                }
+                this.flag = 0
+                // console.log("input:"+this.input)
+                // console.log("最后一个："+this.input.charAt(this.input.length - 1 ))
+                // console.log(this.input.charAt(this.input.length - 1 )=='/')
             }
         }
     }
