@@ -15,16 +15,20 @@ public class MainPage {
         if(dir.equals("getInit")) {
             File[] files = File.listRoots();
             for (File fileName : files) {
-                fileList.add(fileName.toString());
+                if(fileName.isDirectory()) {
+                    fileList.add(fileName.toString());
+                }
             }
         }
         else {
             File file = new File(dir);
             if(file.exists()) {
                 if(file.isDirectory()) {
-                    String[] files = file.list();
-                    for (String fileName : files) {
-                        fileList.add(fileName);
+                    File[] files = file.listFiles();
+                    for (File fileName : files) {
+                        if(fileName.isDirectory()) {
+                            fileList.add(fileName.getName());
+                        }
                     }
                 }
             }

@@ -12,6 +12,9 @@ public interface FileMapper {
     @Select("Select id from filedata where dir=#{dir}")
     public Integer findFromData(String dir);
 
+    @Select("Select dir from filedata where id=#{id}")
+    public String findDir(Integer id);
+
     @Select("Select max(id) from filedata")
     public Integer findMaxId();
 
