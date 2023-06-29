@@ -11,7 +11,7 @@
         <div class="file-choose-table">
             <el-table :data="tableData" stripe style="width: 100%" @row-click="tableItemClick">
                 <el-table-column prop="path" label="文件夹" width="800" ></el-table-column>
-                <el-table-column prop="chooseFolder" label="选择" width="750">
+                <el-table-column prop="chooseFolder" label="选择" width="700">
                     <!-- <el-radio v-model="radio" :label="id">选择</el-radio> -->
                     <!-- <button @click="tableButtonClick">选择</button> -->
                     <el-button type="primary" @click="tableButtonClick">选择</el-button>
@@ -36,22 +36,26 @@
         
         <hr class="new1">
         <div class="ct">
-            <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
-            <div style="margin: 15px 0;"></div> 
-            <el-checkbox-group v-model="checkedFlies" @change="handleCheckedChange">
-                <div v-for="file in fileSearchList"  :key="file.id" class="show-checkbox">
-                    <el-checkbox  :label="file.id">{{ file.filename }}</el-checkbox>
-                    <hr class="new1">
-                    <div v-for="data in file.text" :key="data.line">
-                        <span class="sep">行号：{{ data.line }}</span>
-                        <!-- <span>&nbsp &nbsp &nbsp</span> -->
-                        <span class="sep">{{ data.content }}</span>
-                    </div>
-                    <!-- <hr class="new1"> -->
-                    <!-- <div> </div> -->
-                </div>
-                
-            </el-checkbox-group> 
+           <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+            <div style="margin: 15px 0;"></div> 
+            <el-checkbox-group v-model="checkedFlies" @change="handleCheckedChange">
+                <div v-for="file in fileSearchList"  :key="file.id" class="show-checkbox">
+                    <el-checkbox  :label="file.id">{{ file.filename }}</el-checkbox>
+                    <hr class="new1">
+                    <div v-for="data in file.text" :key="data.line">
+                        <span class="sep">行号：{{ data.line }}</span>
+                        <!-- <span>&nbsp &nbsp &nbsp</span> -->
+                        <span  v-for="(t,i) in data.content" :key="i">
+                            <span v-if=" t.flagg===1 " class="textred">{{ t.te }}</span>
+                            <span v-else class="textabno">{{ t.te }}</span>
+                        </span>
+                        
+                    </div>
+                    <!-- <hr class="new1"> -->
+                    <!-- <div> </div> -->
+                </div>
+                
+            </el-checkbox-group>
         </div>
         
         <div>
@@ -209,12 +213,16 @@
                             
                             a.push(this.analysisKeyValue(key,searchback[key]))
                         }
+
+
                         this.fileSearchList = a
                     }
                     catch(error){
                         console.error(error) 
                     }
                 }
+                this.checkedFlies = []
+                this.checkAll = false
             },
             backToChoose: async function(){
                 try{
@@ -288,6 +296,9 @@
                 this.isIndeterminate = checkedCount > 0 && checkedCount < this.fileSearchList.length;
             },
             download:async function(){
+                
+
+                
                 // 1、汇总所有选中的id
                 let a = ""
                 for(let i=0;i<this.checkedFlies.length-1;i++){
@@ -295,14 +306,19 @@
                 }
                 a += this.checkedFlies[this.checkedFlies.length-1]
                 // console.log(a)
-                try{
-                    // 等待后端的返回的端口已经方式
-                    const response = await axiox.get("http://localhost:8888/download?key="+this.searchkey+"&ids="+a)
-                    // searchback = response.data
-                    }
-                    catch(error){
-                        console.error(error) 
-                    }
+                window.open(
+                    "http://localhost:8888/download?key="+this.searchkey+"&ids="+a,
+                    '_self'
+                );
+                
+                // try{
+                //     // 等待后端的返回的端口已经方式
+                //     const response = await axiox.get("http://localhost:8888/download?key="+this.searchkey+"&ids="+a)
+                //     // searchback = response.data
+                //     }
+                //     catch(error){
+                //         console.error(error) 
+                //     }
 
 
 
@@ -315,10 +331,52 @@
                     for(let i=0;i<arr.length;i++){
                         arr[i] = arr[i].slice(arr[i].indexOf("=")+1)
                     }
+                         //将value中的数据改为下面的格式就可以了
+                        // {line:"1",content:[{flagg:1,te:"1"},{flagg:0,te:"23"}]},
+//                         {line:"2",content:[{flagg:1,te:"1"},{flagg:0,te:"23"}]},
+//                         {line:"3",content:[{flagg:1,te:"1"},{flagg:0,te:"23"}]},
+                //             {line:"1",content:"123"},
+                //             {line:"2",content:"123"},
+                //             {line:"3",content:"123"},
+
+
+
                     let filecontext = new Object();
                     filecontext.id = parseInt(arr[0])
                     filecontext.filename = arr[1]
+                    
+                    for(let i=0;i<value.length;i++) {
+                        let values = []
+                        let s = value[i].content
+                        let indexFront = s.indexOf(this.searchkey)
+                        while(indexFront!=-1){
+                            let frontdata = s.slice(0, indexFront)
+                            let newData1 = new Object()
+                            let newData2 = new Object()
+                            if(frontdata!="") {
+                                newData1.flagg = 0
+                                newData1.te = frontdata
+                                values.push(newData1)
+                            }
+                            newData2.flagg = 1
+                            newData2.te = this.searchkey
+                            s = s.slice(indexFront + this.searchkey.length)
+                            
+                            values.push(newData2)
+                            indexFront = s.indexOf(this.searchkey)
+                        }
+                        let newData = new Object()
+                        newData.flagg = 0
+                        newData.te = s
+                        values.push(newData)
+                        value[i].content = values
+                        
+                    }
                     filecontext.text = value
+
+
+
+
                     return filecontext
             }
         }
@@ -360,6 +418,15 @@
         margin-bottom: 20px;
 
     }
+
+    .textred{
+        color:red;
+        margin:0px
+    }
+    
+    .textabno{
+        margin: 0px;
+    }
     
 </style>
 
@@ -372,7 +439,7 @@
         text-align: center;
     }
     .file-choose-table >>> .el-table__body-wrapper {
-        height: 200px; /* 滚动条整体高 必须项 */
+        height: 300px; /* 滚动条整体高 必须项 */
         border-right: none;
         overflow-y: scroll;/* overflow-y为了不出现水平滚动条*/
     }
