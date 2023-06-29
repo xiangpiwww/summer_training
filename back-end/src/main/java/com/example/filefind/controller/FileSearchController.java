@@ -1,6 +1,8 @@
 package com.example.filefind.controller;
 
 import com.example.filefind.bean.FileMessage;
+import com.example.filefind.bean.FileSaveData;
+import com.example.filefind.mapper.FileMapper;
 import com.example.filefind.service.PDFReadTool;
 import com.example.filefind.service.WordReadTool;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +24,13 @@ import java.util.Map;
 public class FileSearchController {
 
     private List<String> fileList = new ArrayList<>();
+    @Autowired
+    private FileMapper fileMapper;
     @GetMapping("/fileSearch")
-    public Map<String, List<FileMessage>> search(String dir, String key) throws IOException {
+    public Map<FileSaveData, List<FileMessage>> search(String dir, String key) throws IOException {
         fileList.clear();
         File files = new File(dir);
-        Map<String, List<FileMessage>> dir2res = new HashMap<>();
+        Map<FileSaveData, List<FileMessage>> dir2res = new HashMap<>();
         if(files.isDirectory()) {
             getAllFile(files, dir);
             for (String file : fileList) {
@@ -52,7 +56,8 @@ public class FileSearchController {
                 }
 
                 if(fileContent.contains(key)) {
-                    dir2res.put(file, new ArrayList<>());
+                    FileSaveData fileSaveData = new FileSaveData(fileMapper.findFromData(file), file);
+                    dir2res.put(fileSaveData, new ArrayList<>());
                     readLine(fileContent, key, dir2res, file);
                 }
             }
@@ -60,7 +65,7 @@ public class FileSearchController {
         else {
             return null;
         }
-
+        System.out.println(dir2res);
         return dir2res;
     }
 
@@ -71,12 +76,24 @@ public class FileSearchController {
                 getAllFile(file, dir + "/" + file.getName());
             }
             else if(file.getName().endsWith(".doc")||file.getName().endsWith(".docx")||file.getName().endsWith(".pdf")){
-                fileList.add(dir + "/" + file.getName());
+                String fileDir = dir + "/" + file.getName();
+                Integer id = fileMapper.findFromData(fileDir);
+                if(id == null) {
+                    Integer maxId = fileMapper.findMaxId();
+                    if(maxId == null) {
+                        maxId = 1;
+                    }
+                    else {
+                        maxId++;
+                    }
+                    fileMapper.add(new FileSaveData(maxId, fileDir));
+                }
+                fileList.add(fileDir);
             }
         }
     }
 
-    private void readLine(String content, String key, Map<String, List<FileMessage>> dir2res, String fileName) throws IOException {
+    private void readLine(String content, String key, Map<FileSaveData, List<FileMessage>> dir2res, String fileName) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(content.getBytes(Charset.forName("utf8"))), Charset.forName("utf8")));
         String line;
         StringBuffer strbuf = new StringBuffer();
@@ -87,10 +104,12 @@ public class FileSearchController {
             if (line.contains(key)) {
                 FileMessage fileMessage = new FileMessage(i, line);
                 fileMessages.add(fileMessage);
+
             }
 
         }
-        dir2res.put(fileName, fileMessages);
+        FileSaveData fileSaveData = new FileSaveData(fileMapper.findFromData(fileName), fileName);
+        dir2res.put(fileSaveData, fileMessages);
     }
 
 }
